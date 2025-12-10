@@ -8,7 +8,7 @@ Personalizable por campaña/producto
 import re
 from typing import Callable
 
-def create_alpina_topic_classifier() -> Callable[[str], str]:
+def create_topic_classifier() -> Callable[[str], str]:
     """
     Clasificador de temas optimizado para la campaña de Navidad de Alpina.
     Basado en patrones reales de comentarios de usuarios (2025).
