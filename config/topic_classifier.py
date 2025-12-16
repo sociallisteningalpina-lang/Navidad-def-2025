@@ -9,8 +9,10 @@ from typing import Callable
 
 def create_topic_classifier() -> Callable[[str], str]:
     """
-    Clasificador V2: Optimizado para reducir la tasa de 'Otros'.
-    Incluye categorías de Desigualdad Social, Cultura Pop y Aprobación General.
+    Clasificador V3 (Navidad): 
+    - Reduce 'Otros' capturando críticas a los actores/influencers (Lalo & Cota).
+    - Mejora detección de Spam complejo (letras repetidas, secuencias random).
+    - Refina quejas de sabor/calidad.
     """
 
     def classify_topic(comment: str) -> str:
@@ -22,19 +24,32 @@ def create_topic_classifier() -> Callable[[str], str]:
             return 'Ruido / Spam'
 
         # ------------------------------------------------------------------
-        # 1. Valoración: "No IA" y Autenticidad (High Value)
+        # 1. Valoración: "No IA" y Autenticidad (Insight Clave)
         # ------------------------------------------------------------------
         if re.search(
             r'no (es|usaron|hacerlo con) ia|inteligencia artificial|'
-            r'me gusta que no|real|humano|milagro.*no.*ia',
+            r'me gusta que no|real|humano|milagro.*no.*ia|'
+            r'no la ocultan.*oct[oó]gonos', # Respuesta específica sobre transparencia
             comment_lower
         ):
             return 'Valoración: Autenticidad (No IA)'
 
         # ------------------------------------------------------------------
-        # 2. Desigualdad Social y Estratificación (Nuevo - Insight Social)
+        # 2. Crítica: Casting, Actores y Ejecución (NUEVO - Reduce Otros)
         # ------------------------------------------------------------------
-        # Diferente a política. Habla de ricos/pobres, estratos, locaciones.
+        # Captura quejas sobre "Lalo y Cota", "familia falsa", "enchufados"
+        if re.search(
+            r'lalo|cota|señoras|pasivo|enchufados|fritos|tutis|'
+            r'familia de verdad|casado|actores|comercial|falsos|'
+            r'mentiras|l[áa]mpara|contenido|esconda|pareja|'
+            r'quienes son|no había una familia|semejante empresa',
+            comment_lower
+        ):
+            return 'Crítica Influencer'
+
+        # ------------------------------------------------------------------
+        # 3. Desigualdad Social (Contexto País)
+        # ------------------------------------------------------------------
         if re.search(
             r'estrato|soacha|30m2|30 m2|clase alta|clase baja|'
             r'ricos|pobres|barrio|apartamento|realidad es otra|'
@@ -44,96 +59,99 @@ def create_topic_classifier() -> Callable[[str], str]:
             return 'Crítica Social / Desigualdad'
 
         # ------------------------------------------------------------------
-        # 3. Política Dura (Petro / Gobierno)
+        # 4. Política Dura
         # ------------------------------------------------------------------
         if re.search(
             r'petro|urib|derecha|izquierda|corrupci[oó]n|pa[ií]s|'
             r'gobierno|policía|patria|firme por|negocios sucios|'
-            r'dignidad|verguensa|vergüenza|ambicioso|borregos',
+            r'dignidad|verguensa|vergüenza|ambicioso|borregos|'
+            r'libertad|socialis|capitalis',
             comment_lower
         ):
             return 'Política y Gobierno'
 
         # ------------------------------------------------------------------
-        # 4. Salud, Octógonos y Calidad (Gestión de Crisis)
+        # 5. Salud, Calidad y Sabor (Reforzado)
         # ------------------------------------------------------------------
         if re.search(
-            r'veneno|tóxico|daño|envenenado|remedio|'
-            r'pura agua|maicena|sabor a|mala calidad|'
+            r'veneno|t[óo]xico|daño|envenenado|remedio|qu[íi]mico|'
+            r'pura agua|maicena|sabor a|mala calidad|est[áa] muy mala|'
             r'p[eé]simo|p[eé]sima|horrible|gas|vomit|🤢|'
-            r'octágono|sello|azúcar|diabetes|diabético',
+            r'oct[áa]gono|sello|az[úu]car|diabetes|diab[eé]tico|'
+            r'no nutre|enferma|lacto suero|c[áa]ncer|muerte',
             comment_lower
         ):
-            return 'Queja: Salud y Calidad'
+            return 'Queja: Salud, Calidad y Sabor'
 
         # ------------------------------------------------------------------
-        # 5. Precio (Queja Recurrente)
+        # 6. Precio Elevado
         # ------------------------------------------------------------------
         if re.search(
             r'costoso|car[oó]|atraco|nubes|vale la pena|'
             r'\$|5000|mil pesos|imposible poder comer|'
-            r'est[aá]n tan|muy caro|bajenle|subieron de precio',
+            r'est[aá]n tan|muy caro|bajenle|subieron|plata',
             comment_lower
         ):
             return 'Queja: Precio Elevado'
 
         # ------------------------------------------------------------------
-        # 6. Cultura Pop, Memes y Random (Nuevo - Limpia "Otros")
+        # 7. Cultura Pop, Memes y Random
         # ------------------------------------------------------------------
-        # Referencias a juegos, animes o chistes internos de internet
         if re.search(
             r'one piece|happy wheels|terrifier|eggman|master plan|'
-            r'mapa|sonido de|blusa de|jojojo|risa',
+            r'mapa|sonido de|blusa de|jojojo|risa|teoría|lógica',
             comment_lower
         ):
             return 'Cultura Pop / Memes / Random'
 
         # ------------------------------------------------------------------
-        # 7. Nostalgia
-        # ------------------------------------------------------------------
-        if re.search(
-            r'infancia|niñez|años 90|noventa|antes|'
-            r'cuando eran|recuerdo|antaño|crecí con|tradición',
-            comment_lower
-        ):
-            return 'Nostalgia y Tradición'
-
-        # ------------------------------------------------------------------
-        # 8. Navidad y Religión (Incluye errores ortográficos)
+        # 8. Navidad y Religión
         # ------------------------------------------------------------------
         if re.search(
             r'am[eé]n|dios|bendiga|bendiciones|jesús|nacimiento|'
-            r'navidad|nabida|neveded|espíritu|fe |creador',
+            r'navidad|nabida|neveded|espíritu|fe |creador|'
+            r'noche buena|diciembre',
             comment_lower
         ):
             return 'Religioso / Saludos Navideños'
 
         # ------------------------------------------------------------------
-        # 9. Aprobación General / Brand Love (Categoría Ampliada)
+        # 9. Nostalgia y Tradición
         # ------------------------------------------------------------------
-        # Captura "Genial", "Divinoooo", "Me encanta", "Alpinista"
+        if re.search(
+            r'infancia|niñez|años 90|noventa|antes|'
+            r'cuando eran|recuerdo|antaño|crecí con|tradición|'
+            r'historia|siempre',
+            comment_lower
+        ):
+            return 'Nostalgia y Tradición'
+
+        # ------------------------------------------------------------------
+        # 10. Aprobación General / Brand Love
+        # ------------------------------------------------------------------
         if re.search(
             r'genial|hermos[oa]|bell[oa]|divino|lindo|bonito|'
             r'me gusta|me encanta|ame\b|amé|amo\b|'
             r'excelente|increíble|delicia|rico|'
             r'buena imagen|te ves bn|alpinista|mejor marca|'
-            r'conecta|ternura|te amoooo',
+            r'conecta|ternura|te amoooo|buenas vibras|'
+            r'bienestar|top|orgullosa|fan',
             comment_lower
         ):
             return 'Aprobación General / Brand Love'
 
         # ------------------------------------------------------------------
-        # 10. Productos Específicos
+        # 11. Productos Específicos
         # ------------------------------------------------------------------
         if re.search(
             r'avena|kumis|bon yurt|bonyort|leche|yogurt|'
-            r'queso|arequipe|producto|alpinito',
+            r'queso|arequipe|producto|alpinito|finesse',
             comment_lower
         ):
             return 'Mención Producto Específico'
         
         # ------------------------------------------------------------------
-        # 11. Preguntas / Call to Action
+        # 12. Preguntas / Call to Action
         # ------------------------------------------------------------------
         if re.search(
             r'por qu[eé]|c[oó]mo|d[oó]nde|expli|receta|'
@@ -143,7 +161,7 @@ def create_topic_classifier() -> Callable[[str], str]:
             return 'Pregunta / Solicitud'
 
         # ------------------------------------------------------------------
-        # 12. Animales (Patrón específico detectado)
+        # 13. Animales
         # ------------------------------------------------------------------
         if re.search(
             r'perr(o|ito)|gat(o|ico)|mascota|animal',
@@ -152,27 +170,28 @@ def create_topic_classifier() -> Callable[[str], str]:
             return 'Tema: Animales'
 
         # ------------------------------------------------------------------
-        # 13. Ruido / Spam (Filtro ajustado)
+        # 14. Ruido / Spam (Filtro Mejorado)
         # ------------------------------------------------------------------
         is_spam_pattern = re.search(
-            r'tinga linga|'     # Patrón específico spam
-            r'pp\d+|'           # Secuencias tipo Pp099
-            r'^[0-9]+$|'        # Solo números (ej: "6")
-            r'^jajaj?a?+$|'     # Solo risas sin texto
-            r'^hola$|'          # Saludos vacíos
+            r'tinga linga|'      # Patrón específico spam
+            r'[pP]+0*9+|'        # Secuencias tipo Pp099, p99
+            r'^[0-9]+$|'         # Solo números (ej: "6")
+            r'(.)\1{4,}|'        # Letras repetidas mas de 4 veces (vuuuuuu)
+            r'^jajaj?a?+$|'      # Solo risas sin texto
+            r'^hola$|'           # Saludos vacíos
             r'emoji|🤡|'        # Emojis ofensivos solos
-            r'%%%%',
+            r'%%%%|'             # Caracteres especiales solos
+            r'^[a-zA-Z]$',       # Una sola letra (ej: "P")
             comment_lower
         )
         
-        # Solo marcamos como spam si es muy corto Y NO es una palabra válida positiva (ej: "Ty", "Ame")
-        # Y si cumple el patrón de spam explícito.
         if is_spam_pattern:
             return 'Ruido / Spam'
         
-        # "Ty" (Thank you) es común, lo salvamos del filtro de longitud
-        if comment_lower in ['ty', 'si', 'no', 'ok']:
-             return 'Otros / Neutro'
+        # Palabras muy cortas que NO son spam
+        valid_shorts = ['ty', 'si', 'no', 'ok', 'top', 'wow']
+        if comment_lower in valid_shorts:
+             return 'Aprobación General / Brand Love' if comment_lower in ['ty', 'top', 'wow'] else 'Otros / Neutro'
 
         if len(comment_lower) < 3: 
              return 'Ruido / Spam'
